@@ -1,0 +1,48 @@
+name: Blogger Auto Post
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # roz 9:00 AM IST
+  workflow_dispatch:        # manual run button
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create Google credential files
+        run: |
+          echo '${{ secrets.CLIENT_SECRET_JSON }}' > client_secret.json
+          echo '${{ secrets.TOKEN_JSON }}' > token.json
+
+      - name: Run automation
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          BLOG_ID: ${{ secrets.BLOG_ID }}
+          NICHE: technology
+          LANGUAGE: Hindi
+          SERP_HL: hi
+          SERP_GL: in
+          IS_DRAFT: "True"
+          POSTS_PER_RUN: "1"
+        run: python main.py
+
+      - name: Save progress
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add done_keywords.txt
+          git diff --cached --quiet || git commit -m "update done keywords"
+          git push
