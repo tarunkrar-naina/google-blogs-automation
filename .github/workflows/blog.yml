@@ -35,7 +35,7 @@ jobs:
           LANGUAGE: Hindi
           SERP_HL: hi
           SERP_GL: in
-          IS_DRAFT: "True"
+          IS_DRAFT: "False"
           POSTS_PER_RUN: "1"
         run: python main.py
 

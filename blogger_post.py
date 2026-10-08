@@ -1,4 +1,5 @@
 import os
+import time
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -8,7 +9,7 @@ SCOPES = ["https://www.googleapis.com/auth/blogger"]
 
 
 def get_service():
-    """Google login karta hai. Pehli baar browser khulega, baad me token.json use hoga."""
+    """Google login. Pehli baar browser khulega, baad me token.json use hoga."""
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
@@ -17,6 +18,11 @@ def get_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            if os.getenv("CI"):
+                raise RuntimeError(
+                    "Google token kharab ya expire hai. Apne PC par token.json dobara "
+                    "banao aur GitHub secret TOKEN_JSON update karo."
+                )
             flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
             creds = flow.run_local_server(port=0)
         with open("token.json", "w") as f:
@@ -33,11 +39,19 @@ def publish_post(title: str, content_html: str, labels: list, is_draft: bool = T
         "content": content_html,
         "labels": labels,
     }
-    return (
-        service.posts()
-        .insert(blogId=os.getenv("BLOG_ID"), body=body, isDraft=is_draft)
-        .execute()
-    )
+    last_error = None
+    for attempt in range(3):
+        try:
+            return (
+                service.posts()
+                .insert(blogId=os.getenv("BLOG_ID"), body=body, isDraft=is_draft)
+                .execute()
+            )
+        except Exception as e:
+            last_error = e
+            print(f"Blogger error (try {attempt + 1}/3): {e}")
+            time.sleep(10)
+    raise last_error
 
 
 if __name__ == "__main__":
@@ -45,7 +59,5 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
 
     load_dotenv()
-    res = publish_post(
-        "Test Post", "<p>Ye ek test post hai.</p>", ["test"], is_draft=True
-    )
+    res = publish_post("Test Post", "<p>Ye ek test post hai.</p>", ["test"], is_draft=True)
     print("Done:", res.get("url") or res.get("id"))
