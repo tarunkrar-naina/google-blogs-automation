@@ -37,7 +37,10 @@ jobs:
           SERP_GL: in
           IS_DRAFT: "False"
           POSTS_PER_RUN: "1"
-        run: python main.py
+        run: |
+          export GROQ_API_KEY="$(printf '%s' "$GROQ_API_KEY" | tr -d '[:space:]')"
+          export SERPAPI_KEY="$(printf '%s' "$SERPAPI_KEY" | tr -d '[:space:]')"
+          python main.py
 
       - name: Save progress
         run: |
@@ -46,4 +49,8 @@ jobs:
           git add done_keywords.txt
           git diff --cached --quiet || git commit -m "update done keywords"
           git pull --rebase origin main
+<<<<<<< HEAD
           git push
+=======
+          git push
+>>>>>>> 49cfabc (run)
