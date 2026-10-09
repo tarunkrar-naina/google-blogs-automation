@@ -49,8 +49,4 @@ jobs:
           git add done_keywords.txt
           git diff --cached --quiet || git commit -m "update done keywords"
           git pull --rebase origin main
-<<<<<<< HEAD
           git push
-=======
-          git push
->>>>>>> 49cfabc (run)
